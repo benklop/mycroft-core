@@ -31,6 +31,7 @@ from mycroft.util import connected
 from mycroft.util.log import LOG
 from queue import Queue, Empty
 
+import pyaudio
 
 class AudioProducer(Thread):
     """
@@ -225,7 +226,16 @@ class RecognizerLoop(EventEmitter):
         self.lang = config.get('lang')
         self.config = config.get('listener')
         rate = self.config.get('sample_rate')
-        device_index = self.config.get('device_index')
+        
+        #look up the index from name - use 'default' by default to respect alsa settings
+        device_name = self.config.get('device_name', 'default')
+        if device_name:
+            pa = pyaudio.PyAudio()
+            for i in range(pa.get_device_count()):
+                if pa.get_device_info_by_index(i)['name'] == device_name:
+                    device_index_from_name = i
+                    break
+        device_index = self.config.get('device_index', device_index_from_name)
 
         self.microphone = MutableMicrophone(device_index, rate,
                                             mute=self.mute_calls > 0)
